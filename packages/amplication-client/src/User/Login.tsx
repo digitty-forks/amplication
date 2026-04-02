@@ -1,6 +1,8 @@
 import {
+  EnumFlexItemMargin,
   EnumTextAlign,
   EnumTextStyle,
+  FlexItem,
   Text,
 } from "@amplication/ui/design-system";
 import queryString from "query-string";
@@ -12,6 +14,7 @@ import WelcomePage from "../Layout/WelcomePage";
 import {
   REACT_APP_AUTH_LOGIN_URI,
   REACT_APP_GITHUB_AUTH_ENABLED,
+  REACT_APP_SIGNUP_DISABLED,
 } from "../env";
 import { useTracking } from "../util/analytics";
 import { AnalyticsEventNames } from "../util/analytics-events.types";
@@ -40,6 +43,26 @@ const Login = () => {
 
     return params.error;
   }, [location.search]);
+
+  if (REACT_APP_SIGNUP_DISABLED === "true") {
+    return (
+      <WelcomePage {...PAGE_CONTENT}>
+        <Helmet>
+          <title>Amplication | Login</title>
+        </Helmet>
+        <span className={`${CLASS_NAME}__title`}>Hi There</span>
+        <div className={`${CLASS_NAME}__message`}>
+          Connect to your existing Amplication account
+        </div>
+        <GitHubLoginButton />
+        {urlError && (
+          <FlexItem margin={EnumFlexItemMargin.Both}>
+            <ErrorMessage errorMessage={urlError} />
+          </FlexItem>
+        )}
+      </WelcomePage>
+    );
+  }
 
   return (
     <WelcomePage {...PAGE_CONTENT}>

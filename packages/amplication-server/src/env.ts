@@ -64,4 +64,5 @@ export class Env {
   static readonly DSG_RESOURCE_DATA_BASE_FOLDER =
     "DSG_RESOURCE_DATA_BASE_FOLDER";
   static readonly DSG_RESOURCE_DATA_FILE = "DSG_RESOURCE_DATA_FILE";
+  static readonly SIGNUP_DISABLED = "SIGNUP_DISABLED";
 }

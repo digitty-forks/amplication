@@ -64,13 +64,6 @@ function WelcomePage({
             {openSourceMessage}
           </div>
         </div>
-        <a
-          href="https://amplication.com/discord"
-          target="discord"
-          className="discord-button"
-        >
-          <DiscordButton />
-        </a>
       </div>
       <div className={`${CLASS_NAME}__form`}>
         <Panel className={`${CLASS_NAME}__panel`} shadow>

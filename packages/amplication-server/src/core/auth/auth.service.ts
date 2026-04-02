@@ -25,6 +25,7 @@ import { Auth0User } from "../idp/types";
 import { UserService } from "../user/user.service";
 import { CompleteInvitationArgs } from "../workspace/dto";
 import { WorkspaceService } from "../workspace/workspace.service";
+import { EnumSubscriptionPlan } from "../subscription/dto/EnumSubscriptionPlan";
 import { validateWorkEmail } from "./auth-utils";
 import { IdentityProvider } from "./auth.types";
 import {
@@ -40,6 +41,8 @@ import { AuthProfile, AuthUser } from "./types";
 const TOKEN_PREVIEW_LENGTH = 8;
 const TOKEN_EXPIRY_DAYS = 30;
 
+const SIGN_UP_DISABLED = "Amplication is available to existing customers only";
+
 const AUTH_USER_INCLUDE = {
   account: true,
   workspace: true,
@@ -54,6 +57,8 @@ const WORKSPACE_INCLUDE = {
 @Injectable()
 export class AuthService {
   private clientHost: string;
+  private readonly signupDisabled: boolean;
+  private readonly billingEnabled: boolean;
 
   constructor(
     configService: ConfigService,
@@ -70,6 +75,20 @@ export class AuthService {
     private readonly auth0Service: Auth0Service
   ) {
     this.clientHost = configService.get(Env.CLIENT_HOST);
+    this.signupDisabled = configService.get(Env.SIGNUP_DISABLED) === "true";
+    this.billingEnabled = configService.get(Env.BILLING_ENABLED) === "true";
+  }
+
+  private async isFreeTierWorkspace(workspaceId: string): Promise<boolean> {
+    if (!this.billingEnabled || !workspaceId) return false;
+    const subscription = await this.prismaService.subscription.findFirst({
+      where: { workspaceId },
+      orderBy: { createdAt: "desc" },
+    });
+    return (
+      !subscription ||
+      subscription.subscriptionPlan === EnumSubscriptionPlan.Free
+    );
   }
 
   private async trackStartBusinessEmailSignup(
@@ -136,6 +155,10 @@ export class AuthService {
   async signupWithBusinessEmail(
     args: SignupWithBusinessEmailArgs
   ): Promise<boolean> {
+    if (this.signupDisabled) {
+      throw new AmplicationError(SIGN_UP_DISABLED);
+    }
+
     const emailAddress = args.data.email.toLowerCase();
 
     validateWorkEmail(emailAddress);
@@ -187,6 +210,10 @@ export class AuthService {
     payload: GitHubProfile,
     email: string
   ): Promise<AuthUser> {
+    if (this.signupDisabled) {
+      throw new AmplicationError(SIGN_UP_DISABLED);
+    }
+
     const account = await this.accountService.createAccount(
       {
         data: {
@@ -261,6 +288,10 @@ export class AuthService {
   }
 
   async signup(payload: SignupInput): Promise<string> {
+    if (this.signupDisabled) {
+      throw new AmplicationError(SIGN_UP_DISABLED);
+    }
+
     const hashedPassword = await this.passwordService.hashPassword(
       payload.password
     );
@@ -321,6 +352,13 @@ export class AuthService {
     const authUser = await this.getAuthUser({
       id: account.currentUser.id,
     });
+
+    if (
+      this.signupDisabled &&
+      (await this.isFreeTierWorkspace(authUser.workspace.id))
+    ) {
+      throw new AmplicationError(SIGN_UP_DISABLED);
+    }
 
     return this.prepareToken(authUser);
   }
@@ -555,8 +593,29 @@ export class AuthService {
     const existingUser = !!user;
 
     if (!user) {
+      if (this.signupDisabled) {
+        const url = stringifyUrl({
+          url: this.clientHost,
+          query: { error: "signup_disabled" },
+        });
+        response.redirect(301, url);
+        return;
+      }
       user = await this.createUser(profile);
       isNew = true;
+    }
+
+    if (
+      this.signupDisabled &&
+      existingUser &&
+      (await this.isFreeTierWorkspace(user.workspace.id))
+    ) {
+      const url = stringifyUrl({
+        url: this.clientHost,
+        query: { error: "free_tier_disabled" },
+      });
+      response.redirect(301, url);
+      return;
     }
 
     if (!user.account.githubId || user.account.githubId !== profile.sub) {
