@@ -10,7 +10,7 @@ import { Formik } from "formik";
 import { useCallback } from "react";
 import { Button } from "../Components/Button";
 import { ErrorMessage } from "../Components/ErrorMessage";
-import { REACT_APP_AUTH_LOGIN_URI } from "../env";
+import { REACT_APP_AUTH_LOGIN_URI, REACT_APP_SIGNUP_DISABLED } from "../env";
 import { useTracking } from "../util/analytics";
 import { AnalyticsEventNames } from "../util/analytics-events.types";
 import "./AuthWithWorkEmail.scss";
@@ -52,6 +52,24 @@ export const AuthWithWorkEmail: React.FC = () => {
       eventName: AnalyticsEventNames.EmailLogin,
     });
   }, [trackEvent, AnalyticsEventNames]);
+
+  if (REACT_APP_SIGNUP_DISABLED === "true") {
+    return (
+      <div className={CLASS_NAME}>
+        <div className={`${CLASS_NAME}__or`}>
+          <span>or</span>
+        </div>
+        <Text textStyle={EnumTextStyle.Tag}>
+          New signups are currently unavailable.{" "}
+        </Text>
+        <Text textStyle={EnumTextStyle.Tag} underline>
+          <a href={REACT_APP_AUTH_LOGIN_URI} onClick={handleLoginClick}>
+            Login to your existing account
+          </a>
+        </Text>
+      </div>
+    );
+  }
 
   return (
     <>

@@ -14,6 +14,7 @@ import { Button } from "../Components/Button";
 import { SIGN_IN_PAGE_CONTENT, DEFAULT_PAGE_SOURCE } from "../User/constants";
 import "./Signup.scss";
 import { LOCAL_STORAGE_KEY_INVITATION_TOKEN } from "../App";
+import { REACT_APP_SIGNUP_DISABLED } from "../env";
 
 type Values = {
   email: string;
@@ -70,6 +71,16 @@ const Signup = () => {
   }, [data, history, location]);
 
   const errorMessage = formatError(error);
+
+  if (REACT_APP_SIGNUP_DISABLED === "true") {
+    return (
+      <WelcomePage {...PAGE_CONTENT}>
+        <span className={`${CLASS_NAME}__title`}>Sign Up Unavailable</span>
+        <p>New user registration is currently closed.</p>
+        <Link to="/login">Sign in to your existing account</Link>
+      </WelcomePage>
+    );
+  }
 
   return (
     <WelcomePage {...PAGE_CONTENT}>

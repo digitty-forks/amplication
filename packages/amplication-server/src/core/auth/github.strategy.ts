@@ -28,13 +28,17 @@ export class GitHubStrategy extends PassportStrategy(Strategy) {
       },
     });
     if (!user) {
-      return done(
-        null,
-        await this.authService.createGitHubUser(profile, email),
-        {
-          isNew: true,
-        }
-      );
+      try {
+        return done(
+          null,
+          await this.authService.createGitHubUser(profile, email),
+          {
+            isNew: true,
+          }
+        );
+      } catch (err) {
+        return done(err, null, null);
+      }
     }
     if (!user.account.githubId || user.account.githubId !== profile.id) {
       return done(
